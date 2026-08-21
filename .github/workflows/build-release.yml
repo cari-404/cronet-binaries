@@ -111,11 +111,8 @@ jobs:
 
       - name: Build and package (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          TARGET: ${{ matrix.target }}
         run: |
-          ./build_cronet.bat --target "$TARGET" --no-sccache --jobs 8
+          ./build_cronet.bat --target ${{ matrix.target }} --no-sccache --jobs 8
 
       - name: Create release archive
         shell: bash
