@@ -113,7 +113,8 @@ jobs:
         run: |
           ./build_cronet.bat --target ${{ matrix.target }} --no-sccache --jobs 8
 
-      - name: Create release archive
+      - name: Create release archive (Linux)
+        if: runner.os == 'Linux'
         shell: pwsh
         env:
           ARCHIVE: cronet-${{ matrix.slug }}.${{ matrix.format }}
@@ -136,6 +137,9 @@ jobs:
             if os.path.splitext(name)[1].lower() in allowed
           ]
           if not files:
+            print(f"Working directory: {os.getcwd()}")
+            for base in bases:
+              print(f"{base}: exists={os.path.isdir(base)}")
             raise RuntimeError("No release files found")
 
           if archive.endswith(".zip"):
@@ -148,6 +152,31 @@ jobs:
                 output.add(path, arcname=path)
           print(f"Created {archive} with {len(files)} file(s)")
           '@ | python -
+
+      - name: Create release archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = "cronet-${{ matrix.slug }}.zip"
+
+          $files = Get-ChildItem include,lib/${{ matrix.libdir }} -Recurse -File |
+            Where-Object {
+              $_.Extension -in @(
+                ".dll",
+                ".lib",
+                ".pdb",
+                ".h"
+              )
+            }
+
+          if ($files.Count -eq 0) {
+            throw "No release files found"
+          }
+
+          Compress-Archive `
+            -Path $files.FullName `
+            -DestinationPath $archive `
+            -Force
 
       - name: Upload build archive
         uses: actions/upload-artifact@v4
