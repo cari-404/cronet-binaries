@@ -86,7 +86,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          cmd /c "$env:GITHUB_WORKSPACE\depot_tools\gclient.bat --version"
+          cmd /c "$env:GITHUB_WORKSPACE\depot_tools\update_depot_tools.bat"
+          cmd /c "where gn"
+          cmd /c "gn.bat --version"
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
