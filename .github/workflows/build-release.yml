@@ -89,15 +89,7 @@ jobs:
             libdrm-dev libgbm-dev libx11-dev libxcomposite-dev \
             libxdamage-dev libxrandr-dev libxkbcommon-dev libasound2-dev \
             libc6-dev-i386
-
-      - name: Bootstrap GN
-        shell: bash
-        working-directory: naiveproxy/src
-        run: |
-          python tools/gn/bootstrap/bootstrap.py \
-            -o gn/out/gn$(if [[ "$RUNNER_OS" == "Windows" ]]; then echo .exe; fi) \
-            --no-clean
-
+            
       - name: Configure Windows environment
         if: runner.os == 'Windows'
         shell: pwsh
