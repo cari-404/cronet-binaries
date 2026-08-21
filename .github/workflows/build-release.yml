@@ -101,6 +101,7 @@ jobs:
           choco install ninja -y --no-progress
 
       - name: Build and package
+        shell: bash
         env:
           TARGET: ${{ matrix.target }}
         run: |
