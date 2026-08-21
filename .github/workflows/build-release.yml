@@ -88,15 +88,32 @@ jobs:
         run: |
           cmd /c "$env:GITHUB_WORKSPACE\depot_tools\update_depot_tools.bat"
 
-      - name: Add depot_tools CIPD binaries to Windows PATH
+      - name: Download GN on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/gn-bin"
+          curl -fsSL "https://chrome-infra-packages.appspot.com/dl/gn/gn/linux-amd64/+/latest" -o "$RUNNER_TEMP/gn.zip"
+          unzip -p "$RUNNER_TEMP/gn.zip" gn > "$GITHUB_WORKSPACE/gn-bin/gn"
+          chmod +x "$GITHUB_WORKSPACE/gn-bin/gn"
+          echo "$GITHUB_WORKSPACE/gn-bin" >> "$GITHUB_PATH"
+
+      - name: Download GN on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $cipdBin = "$env:GITHUB_WORKSPACE\depot_tools\.cipd_bin"
-          $env:PATH = "$cipdBin;$env:PATH"
-          $cipdBin | Out-File -FilePath $env:GITHUB_PATH -Append
-          cmd /c "where gn"
-          cmd /c "gn.bat --version"
+          $gnDir = "$env:GITHUB_WORKSPACE\gn-bin"
+          $archive = "$env:RUNNER_TEMP\gn.zip"
+          New-Item -ItemType Directory -Force -Path $gnDir | Out-Null
+          Invoke-WebRequest -UseBasicParsing `
+            "https://chrome-infra-packages.appspot.com/dl/gn/gn/windows-amd64/+/latest" `
+            -OutFile $archive
+          Expand-Archive -Path $archive -DestinationPath $env:RUNNER_TEMP\gn-extracted -Force
+          Move-Item "$env:RUNNER_TEMP\gn-extracted\gn.exe" "$gnDir\gn.exe" -Force
+          $env:PATH = "$gnDir;$env:PATH"
+          $gnDir | Out-File -FilePath $env:GITHUB_PATH -Append
+          Get-Command gn.exe
+          & "$gnDir\gn.exe" --version
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
