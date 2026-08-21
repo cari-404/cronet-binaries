@@ -114,40 +114,10 @@ jobs:
           ./build_cronet.bat --target ${{ matrix.target }} --no-sccache --jobs 8
 
       - name: Create release archive
-        shell: bash
         run: |
-          @'
-          import os
-          import tarfile
-          import zipfile
-
-          archive = "cronet-${{ matrix.slug }}.${{ matrix.format }}"
-          libdir = "${{ matrix.libdir }}"
-          allowed = {".so", ".dll", ".dylib", ".h", ".a", ".lib", ".pdb"}
-          bases = ["include", os.path.join("lib", libdir)]
-          files = [
-            os.path.join(root, name)
-            for base in bases
-            for root, _, names in os.walk(base)
-            for name in names
-            if os.path.splitext(name)[1].lower() in allowed
-          ]
-          if not files:
-            print(f"Working directory: {os.getcwd()}")
-            for base in bases:
-              print(f"{base}: exists={os.path.isdir(base)}")
-            raise RuntimeError("No release files found")
-
-          if archive.endswith(".zip"):
-            with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
-              for path in files:
-                output.write(path, path)
-          else:
-            with tarfile.open(archive, "w:xz") as output:
-              for path in files:
-                output.add(path, arcname=path)
-          print(f"Created {archive} with {len(files)} file(s)")
-          '@ | python -
+          python create_package.py `
+            --archive "cronet-${{ matrix.slug }}.${{ matrix.format }}" `
+            --libdir "${{ matrix.libdir }}"
 
       - name: Upload build archive
         uses: actions/upload-artifact@v4
