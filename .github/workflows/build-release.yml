@@ -1,0 +1,137 @@
+name: Build Cronet Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CRONET_TAG: "102.0.5005.61"
+
+concurrency:
+  group: cronet-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-24.04, target: linux/amd64, slug: linux-amd64, libdir: linux_amd64, format: tar.xz }
+          - { runner: ubuntu-24.04, target: linux/386, slug: linux-386, libdir: linux_386, format: tar.xz }
+          - { runner: ubuntu-24.04, target: linux/arm64, slug: linux-arm64, libdir: linux_arm64, format: tar.xz }
+          - { runner: windows-2025, target: windows/amd64, slug: windows-amd64, libdir: windows_amd64, format: zip }
+          - { runner: windows-2025, target: windows/386, slug: windows-386, libdir: windows_386, format: zip }
+          - { runner: windows-2025, target: windows/arm64, slug: windows-arm64, libdir: windows_arm64, format: zip }
+          - { runner: ubuntu-24.04, target: android/amd64, slug: android-amd64, libdir: android_amd64, format: tar.xz }
+          - { runner: ubuntu-24.04, target: android/386, slug: android-386, libdir: android_386, format: tar.xz }
+          - { runner: ubuntu-24.04, target: android/arm64, slug: android-arm64, libdir: android_arm64, format: tar.xz }
+
+    steps:
+      - name: Checkout builder
+        uses: actions/checkout@v4
+
+      - name: Checkout Cronet source
+        uses: actions/checkout@v4
+        with:
+          repository: cari-404/naiveproxy
+          ref: ${{ env.CRONET_TAG }}
+          path: naiveproxy
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build python3 clang ccache pkg-config
+          ./naiveproxy/src/build/install-build-deps.sh --no-prompt
+
+      - name: Configure Windows environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "DEPOT_TOOLS_WIN_TOOLCHAIN=0" | Out-File -FilePath $env:GITHUB_ENV -Append
+          choco install ninja -y --no-progress
+
+      - name: Build and package
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          python build_cronet.py all --target "$TARGET" --no-sccache --jobs 2
+
+      - name: Create release archive
+        shell: bash
+        env:
+          ARCHIVE: cronet-${{ matrix.slug }}.${{ matrix.format }}
+          LIBDIR: ${{ matrix.libdir }}
+        run: |
+          python - <<'PY'
+          import os
+          import tarfile
+          import zipfile
+
+          archive = os.environ["ARCHIVE"]
+          libdir = os.environ["LIBDIR"]
+          allowed = {".so", ".dll", ".dylib", ".h", ".a", ".lib", ".pdb", ".pdp"}
+          bases = ["include", os.path.join("lib", libdir)]
+          files = [
+            os.path.join(root, name)
+            for base in bases
+            for root, _, names in os.walk(base)
+            for name in names
+            if os.path.splitext(name)[1].lower() in allowed
+          ]
+          if not files:
+            raise RuntimeError("No release files found")
+
+          if archive.endswith(".zip"):
+            with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
+              for path in files:
+                output.write(path, path)
+          else:
+            with tarfile.open(archive, "w:xz") as output:
+              for path in files:
+                output.add(path, arcname=path)
+          print(f"Created {archive} with {len(files)} file(s)")
+          PY
+
+      - name: Upload build archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: cronet-${{ matrix.slug }}
+          path: cronet-${{ matrix.slug }}.${{ matrix.format }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    if: github.ref == format('refs/tags/v{0}', env.CRONET_TAG)
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download build archives
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          pattern: cronet-*
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release/*
