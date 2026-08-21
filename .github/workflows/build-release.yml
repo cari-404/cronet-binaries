@@ -77,6 +77,17 @@ jobs:
         shell: bash
         run: echo "$GITHUB_WORKSPACE/depot_tools" >> "$GITHUB_PATH"
 
+      - name: Initialize depot_tools on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: gclient --version
+
+      - name: Initialize depot_tools on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmd /c "$env:GITHUB_WORKSPACE\depot_tools\gclient.bat --version"
+
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         shell: bash
