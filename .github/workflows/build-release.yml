@@ -105,6 +105,9 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
         run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "C:\Program Files\Git\usr\bin" >> "$GITHUB_PATH"
+          fi
           python build_cronet.py all --target "$TARGET" --no-sccache --jobs 8
 
       - name: Create release archive
