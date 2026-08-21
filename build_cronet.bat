@@ -167,15 +167,36 @@ if "%USE_SCCACHE%"=="1" (
     set "WRAPPER_FLAG="
 )
 
+REM Download/build the Chromium toolchain, matching cmd_build.go.
+set "BASH_EXE="
+for /f "delims=" %%B in ('where bash 2^>nul') do if not defined BASH_EXE set "BASH_EXE=%%B"
+if not defined BASH_EXE if exist "C:\Program Files\Git\bin\bash.exe" set "BASH_EXE=C:\Program Files\Git\bin\bash.exe"
+if not defined BASH_EXE (
+    echo [ERROR] bash.exe is required to run get-clang.sh.
+    exit /b 1
+)
+
+set "EXTRA_FLAGS=target_os="win" target_cpu="%CPU%""
+echo [*] Running get-clang.sh for Windows toolchain...
+pushd "%SRC_ROOT%"
+if errorlevel 1 (
+    echo [ERROR] Cannot enter source directory: %SRC_ROOT%
+    exit /b 1
+)
+"%BASH_EXE%" -lc "./get-clang.sh"
+if errorlevel 1 (
+    echo [ERROR] get-clang.sh failed.
+    popd
+    exit /b 1
+)
+popd
+
 REM Set GN Path
 set "GN_EXE=%SRC_ROOT%\gn\out\gn.exe"
 if not exist "%GN_EXE%" (
-    set "GN_EXE="
-    for /f "delims=" %%G in ('where gn 2^>nul') do if not defined GN_EXE set "GN_EXE=%%G"
-    if not defined GN_EXE (
-        echo [ERROR] gn.exe not found in %SRC_ROOT%\gn\out or PATH.
-        exit /b 1
-    )
+    echo [ERROR] gn.exe not found at: %GN_EXE%
+    echo         The Cronet source checkout must include the built GN binary.
+    exit /b 1
 )
 
 REM Setup GN Arguments
@@ -188,7 +209,7 @@ if errorlevel 1 (
     exit /b 1
 )
 echo [*] Using GN: %GN_EXE%
-call "%GN_EXE%" gen "%OUT_DIR%" --args="%GN_ARGS%"
+"%GN_EXE%" gen "%OUT_DIR%" --args="%GN_ARGS%"
 if errorlevel 1 (
     echo [ERROR] gn gen failed!
     popd
