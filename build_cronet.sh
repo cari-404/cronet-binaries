@@ -161,7 +161,7 @@ build_cronet() {
 fatal_linker_warnings=false treat_warnings_as_errors=false is_cronet_build=true \
 use_udev=false use_aura=false use_ozone=false use_gio=false use_glib=false use_kerberos=false \
 disable_file_support=true enable_reporting=false enable_bracketed_proxy_uris=true enable_quic_proxy_support=true \
-use_nss_certs=false enable_dangling_raw_ptr_checks=false \
+use_nss_certs=false enable_backup_ref_ptr_support=false enable_dangling_raw_ptr_checks=false \
 exclude_unwind_tables=true enable_resource_allowlist_generation=false symbol_level=0 enable_dsyms=false optimize_for_size=true \
 target_os=\"$TARGET_OS\" target_cpu=\"$TARGET_CPU\""
 
@@ -221,7 +221,8 @@ target_os=\"$TARGET_OS\" target_cpu=\"$TARGET_CPU\""
     # Run GN
     GN_BIN="./gn/out/gn"
     if [ ! -f "$GN_BIN" ]; then
-        GN_BIN="gn"
+        echo "[ERROR] GN binary not found at $SRC_ROOT/$GN_BIN"
+        exit 1
     fi
 
     echo "[build] Running: $GN_BIN gen $OUT_DIR"

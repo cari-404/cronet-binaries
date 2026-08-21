@@ -256,9 +256,7 @@ def run_get_clang(src_root, target):
 
 
 def build_target(src_root, target, jobs=None, no_sccache=False):
-    # Only run get_clang on non-Windows or when cross-compiling
-    if platform.system().lower() != "windows" or target["os"] != "win":
-        run_get_clang(src_root, target)
+    run_get_clang(src_root, target)
 
     out_dir = get_output_dir(target)
 
@@ -282,6 +280,7 @@ def build_target(src_root, target, jobs=None, no_sccache=False):
         "enable_bracketed_proxy_uris=true",
         "enable_quic_proxy_support=true",
         "use_nss_certs=false",
+        "enable_backup_ref_ptr_support=false",
         "enable_dangling_raw_ptr_checks=false",
         "exclude_unwind_tables=true",
         "enable_resource_allowlist_generation=false",
@@ -353,11 +352,7 @@ def build_target(src_root, target, jobs=None, no_sccache=False):
     # Find GN binary
     gn_bin = src_root / "gn" / "out" / ("gn.exe" if platform.system().lower() == "windows" else "gn")
     if not gn_bin.exists():
-        sys_gn = shutil.which("gn")
-        if sys_gn:
-            gn_bin = Path(sys_gn)
-        else:
-            sys.exit(f"GN binary not found at {gn_bin} or in PATH")
+        sys.exit(f"GN binary not found at {gn_bin}")
 
     log(f"Running: {gn_bin.name} gen {out_dir}")
     env = os.environ.copy()

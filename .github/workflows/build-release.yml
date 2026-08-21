@@ -46,7 +46,6 @@ jobs:
           - { runner: ubuntu-24.04, target: linux/arm64, slug: linux-arm64, libdir: linux_arm64, format: tar.xz }
           - { runner: windows-2025, target: windows/amd64, slug: windows-amd64, libdir: windows_amd64, format: zip }
           - { runner: windows-2025, target: windows/386, slug: windows-386, libdir: windows_386, format: zip }
-          - { runner: windows-2025, target: windows/arm64, slug: windows-arm64, libdir: windows_arm64, format: zip }
           - { runner: ubuntu-24.04, target: android/amd64, slug: android-amd64, libdir: android_amd64, format: tar.xz }
           - { runner: ubuntu-24.04, target: android/386, slug: android-386, libdir: android_386, format: tar.xz }
           - { runner: ubuntu-24.04, target: android/arm64, slug: android-arm64, libdir: android_arm64, format: tar.xz }
@@ -115,12 +114,12 @@ jobs:
           ./build_cronet.bat --target ${{ matrix.target }} --no-sccache --jobs 8
 
       - name: Create release archive
-        shell: bash
+        shell: pwsh
         env:
           ARCHIVE: cronet-${{ matrix.slug }}.${{ matrix.format }}
           LIBDIR: ${{ matrix.libdir }}
         run: |
-          python - <<'PY'
+          @'
           import os
           import tarfile
           import zipfile
@@ -148,7 +147,7 @@ jobs:
               for path in files:
                 output.add(path, arcname=path)
           print(f"Created {archive} with {len(files)} file(s)")
-          PY
+          '@ | python -
 
       - name: Upload build archive
         uses: actions/upload-artifact@v4
