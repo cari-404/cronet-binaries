@@ -412,11 +412,10 @@ def package_targets(project_root, src_root, targets):
     ]
 
     for src_h, dst_name in headers:
-        if src_h.exists():
-            shutil.copy2(src_h, inc_dir / dst_name)
-            log(f"Copied header: {dst_name}")
-        else:
-            log(f"Warning: header not found: {src_h}")
+        if not src_h.exists():
+            sys.exit(f"Required header not found: {src_h}")
+        shutil.copy2(src_h, inc_dir / dst_name)
+        log(f"Copied header: {dst_name}")
 
     for t in targets:
         target_dir = lib_dir / get_library_dir_name(t)
@@ -426,13 +425,18 @@ def package_targets(project_root, src_root, targets):
 
         if t["goos"] == "windows":
             src_dll = out_dir / "cronet.dll"
-            dst_dll = target_dir / "libcronet.dll"
-            if src_dll.exists():
-                shutil.copy2(src_dll, dst_dll)
-                shutil.copy2(src_dll, project_root / "libcronet.dll")
-                log(f"Copied DLL for {t['goos']}/{t['arch']} -> {dst_dll}")
-            else:
-                log(f"Warning: DLL not found at {src_dll}")
+            if not src_dll.exists():
+                sys.exit(f"Required DLL not found: {src_dll}")
+            windows_artifacts = {
+                path for path in out_dir.rglob("*")
+                if path.is_file() and path.suffix.lower() in {".dll", ".lib", ".pdb"}
+            }
+            if not windows_artifacts:
+                sys.exit(f"No Windows artifacts found in {out_dir}")
+            for source in windows_artifacts:
+                destination = target_dir / source.name
+                shutil.copy2(source, destination)
+                log(f"Copied Windows artifact -> {destination}")
         else:
             src_static = out_dir / "obj" / "components" / "cronet" / "libcronet_static.a"
             dst_static = target_dir / "libcronet.a"

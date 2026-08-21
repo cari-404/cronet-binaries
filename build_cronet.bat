@@ -230,18 +230,30 @@ if not exist "%ROOT_DIR%include" mkdir "%ROOT_DIR%include"
 if not exist "%ROOT_DIR%lib\windows_%ARCH%" mkdir "%ROOT_DIR%lib\windows_%ARCH%"
 
 REM Copy headers
-copy /y "%SRC_ROOT%\components\cronet\native\include\cronet_c.h" "%ROOT_DIR%include\" >nul 2>nul
-copy /y "%SRC_ROOT%\components\cronet\native\include\cronet_export.h" "%ROOT_DIR%include\" >nul 2>nul
-copy /y "%SRC_ROOT%\components\cronet\native\generated\cronet.idl_c.h" "%ROOT_DIR%include\" >nul 2>nul
-copy /y "%SRC_ROOT%\components\grpc_support\include\bidirectional_stream_c.h" "%ROOT_DIR%include\" >nul 2>nul
+call :copy_required "%SRC_ROOT%\components\cronet\native\include\cronet_c.h" "%ROOT_DIR%include\cronet_c.h"
+if errorlevel 1 exit /b 1
+call :copy_required "%SRC_ROOT%\components\cronet\native\include\cronet_export.h" "%ROOT_DIR%include\cronet_export.h"
+if errorlevel 1 exit /b 1
+call :copy_required "%SRC_ROOT%\components\cronet\native\generated\cronet.idl_c.h" "%ROOT_DIR%include\cronet.idl_c.h"
+if errorlevel 1 exit /b 1
+call :copy_required "%SRC_ROOT%\components\grpc_support\include\bidirectional_stream_c.h" "%ROOT_DIR%include\bidirectional_stream_c.h"
+if errorlevel 1 exit /b 1
 
 REM Copy DLL
-if exist "%SRC_ROOT%\%OUT_DIR%\cronet.dll" (
-    copy /y "%SRC_ROOT%\%OUT_DIR%\cronet.dll" "%ROOT_DIR%lib\windows_%ARCH%\libcronet.dll"
-    copy /y "%SRC_ROOT%\%OUT_DIR%\cronet.dll" "%ROOT_DIR%libcronet.dll"
-    echo [*] Copied cronet.dll to:
-    echo     - %ROOT_DIR%lib\windows_%ARCH%\libcronet.dll
-    echo     - %ROOT_DIR%libcronet.dll
+if not exist "%SRC_ROOT%\%OUT_DIR%\cronet.dll" (
+    echo [ERROR] Required DLL not found: %SRC_ROOT%\%OUT_DIR%\cronet.dll
+    exit /b 1
+)
+
+for /r "%SRC_ROOT%\%OUT_DIR%" %%F in (*.dll *.lib *.pdb) do (
+    call :copy_artifact "%%~fF" "%ROOT_DIR%lib\windows_%ARCH%\%%~nxF"
+    if errorlevel 1 exit /b 1
+)
+echo [*] Copied Windows DLL, libraries, and debug artifacts.
+
+if not exist "%ROOT_DIR%lib\windows_%ARCH%\cronet.dll" (
+    echo [ERROR] Windows DLL was not packaged as cronet.dll.
+    exit /b 1
 )
 
 where sccache >nul 2>nul
@@ -253,4 +265,28 @@ if not errorlevel 1 (
 echo ======================================================
 echo  Build and Packaging Completed Successfully!
 echo ======================================================
+exit /b 0
+
+:copy_required
+if not exist "%~1" (
+    echo [ERROR] Required file not found: %~1
+    exit /b 1
+)
+copy /y "%~1" "%~2" >nul
+if errorlevel 1 (
+    echo [ERROR] Failed to copy: %~1
+    exit /b 1
+)
+exit /b 0
+
+:copy_artifact
+if not exist "%~1" (
+    echo [ERROR] Artifact not found: %~1
+    exit /b 1
+)
+copy /y "%~1" "%~2" >nul
+if errorlevel 1 (
+    echo [ERROR] Failed to copy artifact: %~1
+    exit /b 1
+)
 exit /b 0
