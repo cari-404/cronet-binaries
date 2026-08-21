@@ -100,15 +100,18 @@ jobs:
           "DEPOT_TOOLS_WIN_TOOLCHAIN=0" | Out-File -FilePath $env:GITHUB_ENV -Append
           choco install ninja -y --no-progress
 
-      - name: Build and package
+      - name: Build and package (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "C:\Program Files\Git\usr\bin" >> "$GITHUB_PATH"
-          fi
           python build_cronet.py all --target "$TARGET" --no-sccache --jobs 8
+
+      - name: Build and package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          ./build_cronet.bat --target ${{ matrix.target }} --no-sccache --jobs 8
 
       - name: Create release archive
         run: |

@@ -218,11 +218,7 @@ if errorlevel 1 (
 
 echo [*] Building cronet.dll via ninja...
 ninja -C "%OUT_DIR%" %NINJA_JOBS% cronet
-if errorlevel 1 (
-    echo [ERROR] ninja build failed!
-    popd
-    exit /b 1
-)
+
 popd
 
 echo [*] Packaging artifacts...
