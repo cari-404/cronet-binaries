@@ -170,10 +170,9 @@ if "%USE_SCCACHE%"=="1" (
 REM Set GN Path
 set "GN_EXE=%SRC_ROOT%\gn\out\gn.exe"
 if not exist "%GN_EXE%" (
-    where gn >nul 2>nul
-    if not errorlevel 1 (
-        set "GN_EXE=gn"
-    ) else (
+    set "GN_EXE="
+    for /f "delims=" %%G in ('where gn 2^>nul') do if not defined GN_EXE set "GN_EXE=%%G"
+    if not defined GN_EXE (
         echo [ERROR] gn.exe not found in %SRC_ROOT%\gn\out or PATH.
         exit /b 1
     )
@@ -184,7 +183,12 @@ set "GN_ARGS=is_official_build=true is_debug=false is_clang=true use_clang_modul
 set DEPOT_TOOLS_WIN_TOOLCHAIN=0
 echo [*] Generating build directory: %OUT_DIR%
 pushd "%SRC_ROOT%"
-"%GN_EXE%" gen "%OUT_DIR%" --args="%GN_ARGS%"
+if errorlevel 1 (
+    echo [ERROR] Cannot enter source directory: %SRC_ROOT%
+    exit /b 1
+)
+echo [*] Using GN: %GN_EXE%
+call "%GN_EXE%" gen "%OUT_DIR%" --args="%GN_ARGS%"
 if errorlevel 1 (
     echo [ERROR] gn gen failed!
     popd
