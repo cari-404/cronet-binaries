@@ -87,6 +87,14 @@ jobs:
         shell: pwsh
         run: |
           cmd /c "$env:GITHUB_WORKSPACE\depot_tools\update_depot_tools.bat"
+
+      - name: Add depot_tools CIPD binaries to Windows PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cipdBin = "$env:GITHUB_WORKSPACE\depot_tools\.cipd_bin"
+          $env:PATH = "$cipdBin;$env:PATH"
+          $cipdBin | Out-File -FilePath $env:GITHUB_PATH -Append
           cmd /c "where gn"
           cmd /c "gn.bat --version"
 
