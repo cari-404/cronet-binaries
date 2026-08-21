@@ -21,7 +21,22 @@ if /i "%~1"=="-j" (
     goto parse_args
 )
 if /i "%~1"=="--jobs" (
+    if "%~2"=="" (
+        echo [ERROR] --jobs requires a number.
+        exit /b 1
+    )
     set "NINJA_JOBS=-j %~2"
+    shift
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--target" (
+    if "%~2"=="" (
+        echo [ERROR] --target requires a target such as windows/amd64.
+        exit /b 1
+    )
+    call :parse_target "%~2"
+    if errorlevel 1 exit /b 1
     shift
     shift
     goto parse_args
@@ -66,6 +81,39 @@ if /i "%~1"=="arm64" (
 echo Unknown option or architecture: %~1
 shift
 goto parse_args
+
+
+:parse_target
+set "TARGET=%~1"
+set "TARGET_OS="
+set "TARGET_ARCH="
+set "TARGET_OK=0"
+
+for /f "tokens=1,2 delims=/" %%A in ("%TARGET%") do (
+    set "TARGET_OS=%%A"
+    set "TARGET_ARCH=%%B"
+)
+
+if /i not "!TARGET_OS!"=="windows" (
+    echo [ERROR] Unsupported target: %~1
+    echo         This batch script builds Windows Cronet only.
+    echo         Use: --target windows/amd64
+    exit /b 1
+)
+
+if /i "!TARGET_ARCH!"=="amd64" (set "ARCH=amd64" & set "TARGET_OK=1")
+if /i "!TARGET_ARCH!"=="x64"   (set "ARCH=amd64" & set "TARGET_OK=1")
+if /i "!TARGET_ARCH!"=="386"   (set "ARCH=386" & set "TARGET_OK=1")
+if /i "!TARGET_ARCH!"=="x86"   (set "ARCH=386" & set "TARGET_OK=1")
+if /i "!TARGET_ARCH!"=="arm64" (set "ARCH=arm64" & set "TARGET_OK=1")
+
+if "!TARGET_OK!"=="0" (
+    echo [ERROR] Unsupported Windows architecture: !TARGET_ARCH!
+    echo         Supported: amd64, 386, arm64
+    exit /b 1
+)
+
+exit /b 0
 
 :done_args
 
