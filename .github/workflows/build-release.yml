@@ -108,11 +108,16 @@ jobs:
         run: |
           python build_cronet.py all --target "$TARGET" --no-sccache --jobs 8
 
-      - name: Build and package (Windows)
+      - name: Build (Windows)
         if: runner.os == 'Windows'
         shell: cmd
         run: |
           ./build_cronet.bat --target ${{ matrix.target }} --no-sccache --jobs 8
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
           ./package_cronet.bat --target ${{ matrix.target }}
 
       - name: Create release archive
