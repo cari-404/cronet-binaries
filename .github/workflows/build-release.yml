@@ -115,6 +115,7 @@ jobs:
 
       - name: Create release archive
         run: |
+          ls -R
           python create_package.py --archive "cronet-${{ matrix.slug }}.${{ matrix.format }}" --libdir "${{ matrix.libdir }}"
 
       - name: Upload build archive
