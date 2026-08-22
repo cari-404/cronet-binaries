@@ -4,7 +4,14 @@ on:
   push:
     tags:
       - "v*"
+
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish GitHub Release"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -134,7 +141,12 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    if: needs.version-check.outputs.matches == 'true' && github.event_name == 'push'
+    if: >
+      needs.version-check.outputs.matches == 'true' &&
+      (
+        github.event_name == 'push' ||
+        inputs.publish_release == true
+      )
     needs: [version-check, build]
     runs-on: ubuntu-24.04
     steps:
