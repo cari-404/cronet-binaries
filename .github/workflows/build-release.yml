@@ -113,6 +113,7 @@ jobs:
         shell: cmd
         run: |
           ./build_cronet.bat --target ${{ matrix.target }} --no-sccache --jobs 8
+          ./package_cronet.bat --target ${{ matrix.target }}
 
       - name: Create release archive
         run: |
